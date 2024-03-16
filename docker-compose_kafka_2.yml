@@ -1,0 +1,182 @@
+version: '2'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000 
+    networks:
+      - equityflow_backend
+    ports:
+      - 22181:2181
+
+  kafka-cluster-1: # First Kafka cluster
+    image: confluentinc/cp-server:5.4.1
+    hostname: kafka-cluster-1
+    container_name: kafka-cluster-1
+    depends_on:
+      - zookeeper
+    networks:
+      - equityflow_backend
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-cluster-1:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      CONFLUENT_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka-cluster-1:29092
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      KAFKA_CONFLUENT_DEFAULT_REPLICATION_FACTOR: 1
+  
+
+  kafka-cluster-2: # Second Kafka cluster
+    image: confluentinc/cp-server:5.4.1
+    hostname: kafka-cluster-2
+    container_name: kafka-cluster-2
+    depends_on:
+      - zookeeper
+    networks:
+      - equityflow_backend
+    ports:
+      - 29093:29093
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-cluster-2:9093,PLAINTEXT_HOST://localhost:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      CONFLUENT_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka-cluster-2:29093
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      KAFKA_CONFLUENT_DEFAULT_REPLICATION_FACTOR: 1
+  
+  kafka-cluster-3: # Third Kafka cluster
+    image: confluentinc/cp-server:5.4.1
+    hostname: kafka-cluster-3
+    container_name: kafka-cluster-3
+    depends_on:
+      - zookeeper
+    networks:
+      - equityflow_backend
+    ports:
+      - 29094:29094
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-cluster-3:9094,PLAINTEXT_HOST://localhost:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      CONFLUENT_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
+      KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka-cluster-3:29094
+      CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+      CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      CONFLUENT_METRICS_ENABLE: 'true'
+      KAFKA_CONFLUENT_DEFAULT_REPLICATION_FACTOR: 1
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    hostname: schema-registry
+    depends_on:
+      - kafka-cluster-1
+    networks:
+      - equityflow_backend
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka-cluster-1:9092,PLAINTEXT_INTERNAL://localhost:29092
+      SCHEMA_REGISTRY_DEBUG: 'true'
+
+  control-center:
+    image: confluentinc/cp-enterprise-control-center:latest
+    hostname: control-center
+    container_name: control-center
+    networks:
+      - equityflow_backend
+    ports:
+      - "9021:9021"
+    depends_on:
+      - zookeeper
+      - kafka-cluster-1
+      - kafka-cluster-2
+      - kafka-cluster-3
+    environment:
+      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka-cluster-1:9092,kafka-cluster-2:9093,kafka-cluster-3:9094'
+      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      CONTROL_CENTER_SCHEMA_REGISTRY_URL: 'schema-registry:8081' 
+      CONTROL_CENTER_REPLICATION_FACTOR: 1
+      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+      CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+      PORT: 9021
+
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:5.4.1
+    networks:
+      - equityflow_backend
+    ports:
+      - "8082:8082"
+    depends_on:
+      - zookeeper
+      - kafka-cluster-1
+    hostname: rest-proxy
+    container_name: rest-proxy
+    environment:
+      KAFKA_REST_HOST_NAME: rest-proxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: 'kafka-cluster-1:9092,kafka-cluster-2:9093,kafka-cluster-3:9094'
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+
+
+  debezium:
+      image: debezium/connect:latest
+      restart: always
+      container_name: debezium
+      hostname: debezium
+      depends_on:
+        kafka-cluster-1:
+          condition: service_healthy
+      networks:
+        - equityflow_backend
+      ports:
+        - '8083:8083'
+      env_file:
+        - /home/shreyas/learn/EquityFlow/.env
+      environment:
+        BOOTSTRAP_SERVERS: 'kafka-cluster-1:9092,kafka-cluster-2:9093,kafka-cluster-3:9094'
+        GROUP_ID: 1
+        CONFIG_STORAGE_TOPIC: connect_configs
+        STATUS_STORAGE_TOPIC: connect_statuses
+        OFFSET_STORAGE_TOPIC: connect_offsets
+        KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+        VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+        ENABLE_DEBEZIUM_SCRIPTING: 'true'
+        POSTGRES_USER: 'user'
+        POSTGRES_PASSWORD: 'password'
+
+
+networks:
+  equityflow_backend:
+    external: true
