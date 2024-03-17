@@ -1,0 +1,25 @@
+{
+    "name": "postgres-connector",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "tasks.max": "1",
+      "plugin.name": "pgoutput",
+      "database.history.kafka.bootstrap.servers": "kafka-cluster-1:9092",
+      "database.history.kafka.topic": "schema-changes.market",
+      "database.hostname": "db",
+      "database.port": "5432",
+      "database.user": "user",
+      "database.password": "password",
+      "database.dbname" : "stocks_db",
+      "database.server.name": "localhost",
+      "table.include.list": "public.market",
+      "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+      "decimal.handling.mode": "double",
+      "key.converter.schemas.enable": "false",
+      "value.converter.schemas.enable": "false",
+      "include.schema.changes": "false",
+      "topic.prefix": "postgres"
+    }
+  }
+  
