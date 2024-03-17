@@ -15,3 +15,9 @@ curl -X POST --location "http://localhost:8083/connectors" -H "Content-Type: app
 
 ## delete schema (soft delete)
 curl -X DELETE http://localhost:8081/subjects/<topic_name>-value
+
+##java build
+mvn clean package
+
+##java run
+mvn exec:java -Dexec.mainClass=com.example.App
